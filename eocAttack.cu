@@ -148,7 +148,7 @@ int main() {
   std::cout << "Dumping out GPU Memory..\n";
   uint32_t *a;
   a = (uint32_t*)malloc(memsize);
-  unsigned int *d_a;
+  uint32_t *d_a;
   cuda_try(cudaMalloc(&d_a, memsize));
 
   /*size_t num_elements = memsize / 4;
@@ -212,7 +212,7 @@ int main() {
 
   std::cout << "Checking outputs\n";
 
-  for (size_t i = 0; i < memsize/4; i+= 32) {
+  for (size_t i = 0; i < memsize / 4; i+= 32) {
     for (size_t j = 0; j < 32; ++j) {
 			if(a[i+j] == uniq_key[j]) {
         num_uncleared++;
@@ -230,6 +230,6 @@ int main() {
   std::cout << "Number of zeros: " << num_zero << "\n";
   std::cout << "Number of others: " << num_others << "\n";
 
-  cuda_try(cudaFree(d_a));
+  //cuda_try(cudaFree(d_a));
 
 }

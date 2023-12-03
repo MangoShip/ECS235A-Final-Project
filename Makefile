@@ -1,4 +1,4 @@
-cudaFile = fillNum
+cudaFile = fillUnifiedMem
 eocFile = eocAttack
 
 all:
