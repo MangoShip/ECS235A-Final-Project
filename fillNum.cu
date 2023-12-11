@@ -87,5 +87,6 @@ int main() {
   unsigned int *d_a;
   cuda_try(cudaMalloc(&d_a, memsize));
   cuda_try(cudaMemcpy(d_a, a, memsize, cudaMemcpyHostToDevice)); // fill GPU memory with a predefined value
-  //cuda_try(cudaFree(d_a)); // deallocate it!!
+  cuda_try(cudaFree(d_a)); // deallocate it!!
+  usleep(100000000);
 }

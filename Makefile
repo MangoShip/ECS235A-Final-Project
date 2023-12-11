@@ -1,5 +1,5 @@
 cudaFile = fillUnifiedMem
-eocFile = eocAttack
+eocFile = umAttack1
 
 all:
 	nvcc $(cudaFile).cu -o $(cudaFile) -lcuda

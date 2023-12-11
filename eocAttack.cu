@@ -126,6 +126,9 @@ int main() {
   }
 
   // Victim Exit System
+  uint32_t *a;
+  a = (uint32_t*)malloc(memsize);
+  uint32_t *d_a;
   while (true) {
     // Based on available global memory in GPU, determine if victim has finished using memory in GPU
     cudaMemGetInfo(&available_memsize, &total_memsize);
@@ -141,74 +144,50 @@ int main() {
       break;
     }
     std::cout << "\n";
+
+    if (cudaMalloc(&d_a, memsize) == cudaSuccess) {
+       std::cout << "Dumping out GPU Memory..\n";
+      cuda_try(cudaMemcpy(a, d_a, memsize, cudaMemcpyDeviceToHost));
+
+      size_t num_uncleared = 0;
+      size_t num_zero = 0;
+      size_t num_others = 0;
+      std::cout << "Checking outputs\n";
+
+      for (size_t i = 0; i < memsize / 4; i+= 32) {
+        for (size_t j = 0; j < 32; ++j) {
+          if(a[i+j] == uniq_key[j]) {
+            num_uncleared++;
+          }
+          else if(a[i+j] == 0) {
+            num_zero++;
+          }
+          else {
+            num_others++;
+          }
+        }
+      }
+
+      std::cout << "Number of uncleared memory: " << num_uncleared << "\n";
+      std::cout << "Number of zeros: " << num_zero << "\n";
+      std::cout << "Number of others: " << num_others << "\n";
+    }
+
     usleep(100000); // 0.1 seconds
   }
 
   // Dump out GPU memory
-  std::cout << "Dumping out GPU Memory..\n";
+  /*std::cout << "Dumping out GPU Memory..\n";
   uint32_t *a;
   a = (uint32_t*)malloc(memsize);
   uint32_t *d_a;
   cuda_try(cudaMalloc(&d_a, memsize));
 
-  /*size_t num_elements = memsize / 4;
-  std::cout << "Number of elements in a: " << num_elements << "\n";
-
-  for (size_t i = 0; i < num_elements; i++) {
-		a[i] = 0;
-	} 
-
-  cuda_try(cudaMemcpy(d_a, a, memsize, cudaMemcpyHostToDevice));
-
-  int num_threads = 1024;
-  size_t num_blocks = num_elements / num_threads;
-
-  std::cout << "Launching GPU kernel\n";
-  extractSharedMem<<<num_blocks, num_threads, num_threads * sizeof(uint32_t)>>>(d_a, num_elements);
-  cudaDeviceSynchronize();*/
-
   cuda_try(cudaMemcpy(a, d_a, memsize, cudaMemcpyDeviceToHost));
 
-  //std::vector<int> uncleared_nums;
   size_t num_uncleared = 0;
   size_t num_zero = 0;
   size_t num_others = 0;
-
-  /*unsigned int buf[32];
-  for (size_t i = 0; i < memsize/4; i += 32) {
-		
-    size_t j = 0;
-    for (j = 0; j < 32; ++j) {
-			buf[j] = a[i+j];
-		}
-
-    for (j = 0; j < 32; ++j) {
-			if (buf[j] != uniq_key[j])
-				break;
-		}
-
-    if (j != 32) {
-			for (size_t k = 0; k < 32; ++k) {
-        if (buf[k] == 0) {
-          num_zero++;
-        }
-        else {
-          num_uncleared++;
-        }
-			}
-		}
-	}*/
-  /*int tmp = 0;
-  for (size_t i = 0; i < memsize/4; i++) {
-    if(a[i] != 1 && a[i] != 0) {
-      //uncleared_nums.push_back(a[i]);
-      num_uncleared++;
-      if (tmp < 10) {
-        std::cout << a[i] << " ";
-        tmp++;
-      }
-    }
-  }*/
 
   std::cout << "Checking outputs\n";
 
@@ -228,8 +207,6 @@ int main() {
 
   std::cout << "Number of uncleared memory: " << num_uncleared << "\n";
   std::cout << "Number of zeros: " << num_zero << "\n";
-  std::cout << "Number of others: " << num_others << "\n";
-
-  //cuda_try(cudaFree(d_a));
+  std::cout << "Number of others: " << num_others << "\n";*/
 
 }
